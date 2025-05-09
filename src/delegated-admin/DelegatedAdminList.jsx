@@ -1,22 +1,22 @@
 import React, { usEffect, useState } from 'react';
+import { getDelegatedAdmins } from './soapClient';
 
 const DelegatedAdminList = () => {
   const [admins, setAdmins] = useState([]);
 
   useEffect(() => {
-    // ToDO: Implement SOAP here
-    setAdmins([{ email: 'admin@domain.com', role: 'delegated' }]);
+    getDelegatedAdmins()
+      .then(setAdmins)
+      .catch((e) => console.error("Fetch error", e));
   }, []);
 
   return (
     <div>
       <h2>Delegated Admins</h2>
       <ul>
-        {admins.map((a)=> (
-          <li key={a.email}>
-            {a.email} - { a.role }
-          </li>
-        ))}
+        {admins.map((a, i) => (
+          <li key={i}>{a.email}</li>
+        )})
       </ul>
     </div>
   );
