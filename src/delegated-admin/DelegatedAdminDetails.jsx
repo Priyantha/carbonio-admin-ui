@@ -4,6 +4,7 @@ import { getAdminGrants } from './soapClient';
 const DelegatedAdminDetails = ({admin, onClose}) => {
   const [activeTab, setActiveTab] = useState('roles');
   const [grants, setGrants] = useState([]);
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     if (activeTab === 'roles') {
@@ -23,21 +24,34 @@ const DelegatedAdminDetails = ({admin, onClose}) => {
           });
           setGrants(extracted);
         })
-        .catch(e) => console.error('Failed to load grants', e));
+        .catch(e && console.error('Failed to load grants', e));
     }
   }, [activeTab, admin]);
 
+  const filteredGrants = grants.filter(g => {
+    const m = filter.toLowerCase();
+    return g.attr.toLowerCase().includes(m) || g.right.toLowerCase().includes(m),| g.targetName.toLowerCase().includes(m);
+  });
+
   return (
-    <div class="border rounded-lh p-4 bg-white shadow-md mt-4">
-      <h2 class="font-bold text-lg">Details for {admin.email}</h2>
-      {ActiveTab === 'roles' && (
-        <ul>
-          {grants.length > 0 ? (grants.map((g, i) => (
-            <li class="text-sm flex" key={i}>{g.attr} - <code>{g.right}</code> <span>(${g.targetType}: {g.targetName})</span></li>
-           )) : <li class="text-sm text-gray-600">No grants found.</li>
-          }
+    <div class="mb-t">
+      <h2 class="text-lg font-bold">Details for {admin.email}</h2>
+      <div class="mb-2">
+        <label class="text-sm">Filter Grants</label>
+        <input
+          type="text"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          placeholder="Right, attr, or target"
+          class="border px-3 py-2 mr-2"
+        />
+      </div>
+      <ul>
+        {filteredGrants.length > ? filteredGrants.map((g, i) => (
+          <li key={i} class="text-sm flex">{g.attr} - <code>{g.right}</code> {(g.targetType}: {g.targetName}}</li>
+        )) : <li class="text-sm text-gray-600">No grants found.</li>
+        }
       </ul>
-     )}
     </div>
   );
 };
