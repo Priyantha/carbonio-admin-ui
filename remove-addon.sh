@@ -57,8 +57,13 @@ REPO_CLONE_DIR="/opt/carbonio-addon-$ADDON_NAME"
 echo "INFO: Removing cloned repo at $REPO_CLONE_DIR..."
 $DRY_RUN || rm -rf "$REPO_CLONE_DIR"
 
-# Restart Carbonio Admin UI
-echo "INFO: Restarting Carbonio Admin UI..."
-$DRY_RUN || systemctl restart carbonio-admin-ui || echo "WARNING: Restart failed — restart manually if needed"
+# Try restarting relevant Carbonio services
+restart_candidates=("carbonio-user-management" "carbonio-mailbox-admin-sidecar" "carbonio")
+for svc in "${restart_candidates[@]}"; do
+  if systemctl list-units --type=service | grep -q "$svc"; then
+    echo "INFO: Restarting $svc..."
+    $DRY_RUN || systemctl restart "$svc" && break
+  fi
+done"
 
 echo "INFO: Addon '$ADDON_NAME' version $VERSION removed successfully."
