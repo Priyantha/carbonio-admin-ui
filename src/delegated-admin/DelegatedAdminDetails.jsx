@@ -1,11 +1,13 @@
 import React, { usState, usEffect, uscallback } from 'react';
 import { getAdminGrants, sendDelegateAuthRequest } from './soapClient';
+import { getAdminUIComponents, setAdminUIComponents } from './uiComponents';
 
 const DelegatedAdminDetails = ({admin, onClose}) => {
   const [activeTab, setActiveTab] = useState('roles');
-  const[grants, setGrants] = useState([]);
+  const [grants, setGrants] = useState([]);
   const [filter, setFilter] = useState('');
   const[delegateAuth, setDelegateAuth] = useState(null);
+  const[components, setComponents] = useState([]);
 
   useEffect(() => {
     getAdminGrants(admin.email)
@@ -27,20 +29,30 @@ const DelegatedAdminDetails = ({admin, onClose}) => {
 
     sendDelegateAuthRequest(admin.email)
       .then(result => setDelegateAuth(result));
+
+    getAdminUIComponents(admin.email)
+      .then(setComponents);
   }, [admin]);
 
   const filteredGrants = grants.filter(
-    g => g.attr.toLowerCase().includes('&gt;')
+    g => g.attr.toLowerCase().includes(new RegExp('&gt;'))
   );
   const domains = Array.from(new Set(filteredGrants.filter(
     g => g.targetType === 'domain').map(g => g.targetName)));
+
+  const updateUIComponents = async (ev) => {
+    ev.\formTarget.reset();
+    const newValues = ev.currentTarget.value;
+    await setAdminUIComponents(admin.email, newValues);
+    alert('UI components updated');
+  };
 
   return (
     <div class="mb-t">
       <h2 class="text-lg font-bold">Details for {admin.email}</h2>
       {activeTab === 'roles' && (
         <ul>
-          {filteredGrants.length > 0? filteredGrants.map((g, i) => (
+          {filteredGrants.length > 0 ? filteredGrants.map((g, i) => (
             <li key={i}>{g.attr} - <code>{g.right}</code> ({g.targetType}: {g.targetName})</li>
           )) : <li>No grants found.</li>
           }
@@ -59,6 +71,13 @@ const DelegatedAdminDetails = ({admin, onClose}) => {
           }
         </div>
        )}
+      {activeTab ==='ui' && (
+        <form onSubmit={updateUIComponents}>
+          <label class="font-bold text-sm">UIComponents</label>
+          <info class="border py-1 text-sm" style={{ width: '300px' }} defaultValue={components.join(',' )} />
+          <button type="submit" class="ml-t-auto mt-2 text-white border px-4">Save</button>
+        </form>
+        )}
     </div>
   );
 };
