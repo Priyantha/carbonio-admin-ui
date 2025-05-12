@@ -34,50 +34,13 @@ const DelegatedAdminDetails = ({admin, onClose}) => {
       .then(setComponents);
   }, [admin]);
 
-  const filteredGrants = grants.filter(
-    g => g.attr.toLowerCase().includes(new RegExp('&gt;'))
-  );
-  const domains = Array.from(new Set(filteredGrants.filter(
-    g => g.targetType === 'domain').map(g => g.targetName)));
-
-  const updateUIComponents = async (ev) => {
-    ev.\formTarget.reset();
-    const newValues = ev.currentTarget.value;
-    await setAdminUIComponents(admin.email, newValues);
-    alert('UI components updated');
-  };
-
   return (
     <div class="mb-t">
       <h2 class="text-lg font-bold">Details for {admin.email}</h2>
-      {activeTab === 'roles' && (
-        <ul>
-          {filteredGrants.length > 0 ? filteredGrants.map((g, i) => (
-            <li key={i}>{g.attr} - <code>{g.right}</code> ({g.targetType}: {g.targetName})</li>
-          )) : <li>No grants found.</li>
-          }
-        </ul>
-      )}
-      {activeTab === 'domains' && (
-        <ul>
-          {domains.length > 0 ? domains.map((d, i)=> <li key={i}>{d}</li>) : <li>No delegated domains.</li>
-        </ul>
-      )}
-      {activeTab === 'validation' && (
-        <div>
-          {delegateAuth == null ? <span>Loading...</span> : delegateAuth.success ?
-            <span class="text-green-600 font-bold">Successfully validated</span> :
-            <span class="text-red-500 font-bold">Validation failed</span>
-          }
-        </div>
-       )}
-      {activeTab ==='ui' && (
-        <form onSubmit={updateUIComponents}>
-          <label class="font-bold text-sm">UIComponents</label>
-          <info class="border py-1 text-sm" style={{ width: '300px' }} defaultValue={components.join(',' )} />
-          <button type="submit" class="ml-t-auto mt-2 text-white border px-4">Save</button>
-        </form>
-        )}
+      {activeTab === 'rights' && (
+        <div class="border p-4 my-2">Rights Management tab coming soon</tiv>
+        )
+      }
     </div>
   );
 };
