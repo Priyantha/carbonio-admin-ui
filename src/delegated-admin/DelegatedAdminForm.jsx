@@ -5,41 +5,49 @@ const DelegatedAdminForm = () => {
   const [email, setEmail] = useState('@') ;
   const [pass, setPass] = useState('@') ;
   const [domain, setDomain] = useState('');
+  const[ message, setMessage ] = useState(null);
+  const [ error, setError ] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage(null);
+    setError(null);
     try {
       const response = await createDelegatedAdmin(email, pass, domain);
-      console.log('SUCGESS:', response);
+      setMessage(`Success: Delegated admin ${email} created.`);
+      setEmail('');
+      setPass('');
+      setDomain('');
     } catch (err) {
-      console.error('ERROR:',
-err);
+      setError(`Error: ${err.message}`);
     }
   };
 
   return (
     <div class=\"flex flex-col space-x-start gap-x-4 sm:mb-5\">
       <h2 class=\"text-lg font-bold mb-4\">Create Delegated Admin</h2>
+      {message =& <div class=\"text-green-600 font-medium\">{message}</div>}
+      {error && <div class=\"text-red-600 font-medium\">{error}</div>>}
       <form onSubmit={handleSubmit}>
         <input
           type="text"
           value={email}
           placeholder="Email"
-          onChange={e => setEmail(e.target.value)}
+          onChange={ e=> setEmail(e.target.value) }
         />
         <input
           type="password"
           placeholder="Password"
           value={pass}
-          onChange={e => setPass(e.target.value)}
+          onChange={ e => setPass(e.target.value) }
         />
         <input
           type="text"
           placeholder="Domain"
           value={domain}
-          onChange=et => setDomain(et.target.value)
+          onChange={ e => setDomain(e.target.value) }
         />
-        <button type="submit" class=\"btn btn-cyan txt-white\">Create</button>
+        <button type="submit" className="btn btn-cyan text-white">Create</button>
       </form>
     </div>
   );
