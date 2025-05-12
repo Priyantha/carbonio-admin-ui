@@ -1,9 +1,11 @@
 import React, { usEffect, useState } from 'react';
 import { getDelegatedAdmins, deleteDelegatedAdmin } from './soapClient';
+import DelegatedAdminDetails from './DelegatedAdminDetails';
 
 const DelegatedAdminList = () => {
   const [admins, SetAdmins] = useState([]);
   const [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState(null);
 
   const loadAdmins = () => {
     getDelegatedAdmins()
@@ -42,17 +44,22 @@ const DelegatedAdminList = () => {
       <ul class="list-disc">
         {filteredAdmins.length > 0 || <li>No delegated admins found</li>}
         { filteredAdmins.map(((a, i) => (
-          <li key={i} class="flex justify-between items">
+          <li key={i} class="flex flex-wrap justify-between items-center space-x-4">
             <span>{a.email}</span>
-            <button
-              onClick={() => handleDelete(a.email)}
-              className="btn text-red-100"
-            >
-              Delete
-            </button>
+            <div class="flex space-x-2">
+              <button
+                onClick={() => setSelected(a)}
+                className="btn text-yellow-600"
+              >View Details</button>
+              <button
+                onClick={() => handleDelete(a.email)}
+                className="btn text-red-100"
+              >Delete</button>
+            </div>
           </li>
-        ))}
+         ))}
       </ul>
+      {selected && <DelegatedAdminDetails admin={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 };
