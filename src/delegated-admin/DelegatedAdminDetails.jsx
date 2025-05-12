@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { revokeRightFromAdmin, grantRightToAdmin } from './cliWrapper';
+import { revokeRightFromAdmin, grantRightToAdmin, getUIComponents, updateUIComponents } from './cliWrapper';
 
 const RightManagementTab = ({ rawGrants }) => {
   const [form, setForm] = useState({
@@ -8,6 +8,20 @@ const RightManagementTab = ({ rawGrants }) => {
     right: '',
     attr: ''
   });
+
+  const [uiAccount, setUiAccount] = useState('');
+  const [uiComponents, setUiComponents] = useState([]);
+  const [newComponent, setNewComponent] = useState('');
+
+  const fetchUIComponents = async () => {
+    const data = await getUIComponents(uiAccount);
+    setUiComponents(data);
+  };
+
+  const saveUIComponents = async () => {
+    await updateUIComponents(uiAccount, uiComponents);
+    alert('Updated UI Components!');
+  };
 
   const handleInput = (e) => {
     const { name, value } = e.target;
@@ -75,6 +89,57 @@ const RightManagementTab = ({ rawGrants }) => {
           Add
         </button>
       </form>
+
+      <div className="space-y-2 border-t pt-4">
+        <h3 className="font-semibold">UI Components Configuration</h3>
+        <input
+          value={uiAccount}
+          onChange={(e) => setUiAccount(e.target.value)}
+          placeholder="admin@example.com"
+          className="border px-2 py-1"
+        />
+        <button onClick={fetchUIComponents} className="ml-2 text-sm border px-3 py-1">
+          Load Components
+        </button>
+        <ul>
+          {uiComponents.map((comp, idx) => (
+            <li key={idx} className="flex gap-2 items-center">
+              <span>{comp}</span>
+              <button
+                className="text-red-600 text-xs"
+                onClick={() => setUiComponents(uiComponents.filter((c) => c !== comp))}
+              >
+                remove
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="flex gap-2 items-center">
+          <input
+            value={newComponent}
+            onChange={(e) => setNewComponent(e.target.value)}
+            placeholder="New Component"
+            className="border px-2 py-1"
+          />
+          <button
+            onClick={() => {
+              if (newComponent && !uiComponents.includes(newComponent)) {
+                setUiComponents([...uiComponents, newComponent]);
+                setNewComponent('');
+              }
+            }}
+            className="text-xs border px-2"
+          >
+            add
+          </button>
+        </div>
+        <button
+          onClick={saveUIComponents}
+          className="text-sm mt-2 border bg-green-500 text-white px-4 py-1"
+        >
+          Save Changes
+        </button>
+      </div>
 
       <ul className="space-y-4">
         {Object.keys(grouped).map((key) => (
