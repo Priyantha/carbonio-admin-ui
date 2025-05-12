@@ -1,10 +1,11 @@
-import React, { usState, usEffect } from 'react';
-import { getAdminGrants } from './soapClient';
+import React, { usState, usEffect, uscallback } from 'react';
+import { getAdminGrants, sendDelegateAuthRequest } from './soapClient';
 
 const DelegatedAdminDetails = ({admin, onClose}) => {
   const [activeTab, setActiveTab] = useState('roles');
-  const [grants, setGrants] = useState([]);
+  const[grants, setGrants] = useState([]);
   const [filter, setFilter] = useState('');
+  const[delegateAuth, setDelegateAuth] = useState(null);
 
   useEffect(() => {
     getAdminGrants(admin.email)
@@ -22,24 +23,42 @@ const DelegatedAdminDetails = ({admin, onClose}) => {
           };
         });
         setGrants(extracted);
-    })
-    .catch(e => console.error('Grant fetch error', e));
+    });
+
+    sendDelegateAuthRequest(admin.email)
+      .then(result => setDelegateAuth(result));
   }, [admin]);
 
   const filteredGrants = grants.filter(
-    g => g.attr.toLowerCase().includes(new RegExp('&gt;'))
+    g => g.attr.toLowerCase().includes('&gt;')
   );
-
-  const domains = Array.from(new Set(filteredGrants.filter(g => g.targetType === 'domain').map(g => g.targetName)));
+  const domains = Array.from(new Set(filteredGrants.filter(
+    g => g.targetType === 'domain').map(g => g.targetName)));
 
   return (
     <div class="mb-t">
       <h2 class="text-lg font-bold">Details for {admin.email}</h2>
+      {activeTab === 'roles' && (
+        <ul>
+          {filteredGrants.length > 0? filteredGrants.map((g, i) => (
+            <li key={i}>{g.attr} - <code>{g.right}</code> ({g.targetType}: {g.targetName})</li>
+          )) : <li>No grants found.</li>
+          }
+        </ul>
+      )}
       {activeTab === 'domains' && (
         <ul>
           {domains.length > 0 ? domains.map((d, i)=> <li key={i}>{d}</li>) : <li>No delegated domains.</li>
         </ul>
       )}
+      {activeTab === 'validation' && (
+        <div>
+          {delegateAuth == null ? <span>Loading...</span> : delegateAuth.success ?
+            <span class="text-green-600 font-bold">Successfully validated</span> :
+            <span class="text-red-500 font-bold">Validation failed</span>
+          }
+        </div>
+       )}
     </div>
   );
 };
