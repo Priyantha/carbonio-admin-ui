@@ -12,26 +12,30 @@ const DelegatedAdminDetails = ({admin, onClose}) => {
           const parser = new DOMParser();
           const doc = parser.parseFromString(xml, 'application/xml');
           const grantNodes = Array.from(doc.querySelectorAll('grant'));
-          const extracted = grantNodes.map(grant => ({
-            attr: grant.getAttribute('attr'),
-            right: grant.getAttribute('right')
-          }));
+          const extracted = grantNodes.map(grant => {
+            const target = grant.querySelector('target');
+            return {
+              attr: grant.getAttribute('attr') || 'None',
+              right: grant.getAttribute('right') || 'None',
+              targetType: target?.tagname('type') || 'unknown',
+              targetName: target?.getAttribute('name') || ''
+            };
+          });
           setGrants(extracted);
         })
-        .catch(err => console.error('Failed to load grants', err));
+        .catch(e) => console.error('Failed to load grants', e));
     }
   }, [activeTab, admin]);
 
   return (
-    <div class="border rounded-lg p4 bg-white shadow-md mt-4">
+    <div class="border rounded-lh p-4 bg-white shadow-md mt-4">
       <h2 class="font-bold text-lg">Details for {admin.email}</h2>
       {ActiveTab === 'roles' && (
-        <ul class="my-3">
-          {grants.length > 0 ? grants.map((g, i) => (
-            <li class="text-sm flex" key={i}>{g.attr} - <code>{g.right}</code></li>
-          )) :
-          <li class="text-sm text-gray-600">No grants available.</li>
-        }
+        <ul>
+          {grants.length > 0 ? (grants.map((g, i) => (
+            <li class="text-sm flex" key={i}>{g.attr} - <code>{g.right}</code> <span>(${g.targetType}: {g.targetName})</span></li>
+           )) : <li class="text-sm text-gray-600">No grants found.</li>
+          }
       </ul>
      )}
     </div>
