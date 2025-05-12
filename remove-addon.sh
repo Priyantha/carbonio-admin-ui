@@ -14,7 +14,7 @@ if [ "$1" == "--dry-run" ]; then
   echo "INFO: Running in dry-run mode. No files will be modified."
 fi
 
-# AUTO-DETECT CARBONIO UI PATH
+# Auto-detect Carbonio Admin UI path
 CARBONIO_UI_PATH=$(find /opt /usr -type d -name "carbonio-admin-ui" 2>/dev/null | head -n 1)
 
 if [ -z "$CARBONIO_UI_PATH" ]; then
@@ -25,7 +25,7 @@ fi
 
 echo "INFO: Detected Carbonio UI path at: $CARBONIO_UI_PATH"
 
-# CONFIGURATION
+# Configuration
 ADDON_NAME="delegated-admin"
 VERSION_FILE="$CARBONIO_UI_PATH/src/$ADDON_NAME/VERSION"
 VERSION="unknown"
@@ -46,19 +46,19 @@ if [ -f "$SIDEBAR_FILE" ]; then
   $DRY_RUN || sed -i "/\/$ADDON_NAME/d" "$SIDEBAR_FILE"
 fi
 
-# Remove CLI wrapper
+# Remove CLI wrapper if exists
 if [ -f "/usr/local/bin/cliWrapper.js" ]; then
   echo "INFO: Removing CLI wrapper..."
   $DRY_RUN || rm /usr/local/bin/cliWrapper.js
 fi
 
-# Remove cloned repo
+# Remove local clone of the repository
 REPO_CLONE_DIR="/opt/carbonio-addon-$ADDON_NAME"
 echo "INFO: Removing cloned repo at $REPO_CLONE_DIR..."
 $DRY_RUN || rm -rf "$REPO_CLONE_DIR"
 
-# Restart UI (if needed)
+# Restart Carbonio Admin UI
 echo "INFO: Restarting Carbonio Admin UI..."
-$DRY_RUN || systemctl restart carbonio-admin-ui || echo "WARNING: Restart failed - restart manually if needed"
+$DRY_RUN || systemctl restart carbonio-admin-ui || echo "WARNING: Restart failed — restart manually if needed"
 
 echo "INFO: Addon '$ADDON_NAME' version $VERSION removed successfully."
