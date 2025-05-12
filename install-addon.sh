@@ -25,7 +25,7 @@ for arg in "$@"; do
   shift
 done
 
-# AUTO-DETECT CARBONIO UI PATH
+# Auto-detect Carbonio Admin UI path
 CARBONIO_UI_PATH=$(find /opt /usr -type d -name "carbonio-admin-ui" 2>/dev/null | head -n 1)
 
 if [ -z "$CARBONIO_UI_PATH" ]; then
@@ -36,7 +36,7 @@ fi
 
 echo "INFO: Detected Carbonio UI path at: $CARBONIO_UI_PATH"
 
-# CONFIGURATION
+# Configuration
 ADDON_NAME="delegated-admin"
 REPO_CLONE_DIR="/opt/carbonio-addon-$ADDON_NAME"
 VERSION="0.1.0"
@@ -81,8 +81,13 @@ echo "Installing CLI backend wrapper..."
 $DRY_RUN || cp "$REPO_CLONE_DIR/src/$ADDON_NAME/cliWrapper.js" /usr/local/bin/cliWrapper.js
 $DRY_RUN || chmod +x /usr/local/bin/cliWrapper.js
 
-# Restart UI (if needed)
-echo "Restarting Carbonio Admin UI..."
-$DRY_RUN || systemctl restart carbonio-admin-ui || echo "WARNING: Restart failed — restart manually if needed"
+# Try restarting relevant Carbonio services
+restart_candidates=("carbonio-user-management" "carbonio-mailbox-admin-sidecar" "carbonio")
+for svc in "${restart_candidates[@]}"; do
+  if systemctl list-units --type=service | grep -q "$svc"; then
+    echo "INFO: Restarting $svc..."
+    $DRY_RUN || systemctl restart "$svc" && break
+  fi
+done
 
 echo "INFO: Addon '$ADDON_NAME' v$VERSION installation complete."
