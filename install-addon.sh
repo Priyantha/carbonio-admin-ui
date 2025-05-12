@@ -3,62 +3,86 @@ set -e
 
 # Ensure script is run as root
 if [ "$(id -u)" -ne 0 ]; then
-  echo "❌ This script must be run as root. Use sudo."
+  echo "ERROR: This script must be run as root. Use sudo."
   exit 1
 fi
 
-# Dry-run mode
+# Dry-run and update flags
 DRY_RUN=false
-if [ "$1" == "--dry-run" ]; then
-  DRY_RUN=true
-  echo "🔍 Running in dry-run mode. No files will be modified."
-fi
+FORCE_UPDATE=false
+
+for arg in "$@"; do
+  case $arg in
+    --dry-run)
+      DRY_RUN=true
+      echo "INFO: Running in dry-run mode. No files will be modified."
+      ;;
+    --update)
+      FORCE_UPDATE=true
+      echo "INFO: Update mode enabled. Will overwrite existing files."
+      ;;
+  esac
+  shift
+done
 
 # AUTO-DETECT CARBONIO UI PATH
 CARBONIO_UI_PATH=$(find /opt /usr -type d -name "carbonio-admin-ui" 2>/dev/null | head -n 1)
 
 if [ -z "$CARBONIO_UI_PATH" ]; then
-  echo "❌ Could not auto-detect carbonio-admin-ui path."
+  echo "ERROR: Could not auto-detect carbonio-admin-ui path."
   echo "Please set CARBONIO_UI_PATH manually in this script."
   exit 1
 fi
 
-echo "✅ Detected Carbonio UI path at: $CARBONIO_UI_PATH"
+echo "INFO: Detected Carbonio UI path at: $CARBONIO_UI_PATH"
 
 # CONFIGURATION
 ADDON_NAME="delegated-admin"
-VERSION_FILE="$CARBONIO_UI_PATH/src/$ADDON_NAME/VERSION"
-VERSION="unknown"
-if [ -f "$VERSION_FILE" ]; then
-  VERSION=$(cat "$VERSION_FILE")
-fi
-
-echo "🧹 Preparing to remove addon '$ADDON_NAME' (version $VERSION)..."
-
-# Remove frontend files
-echo "Removing UI components..."
-$DRY_RUN || rm -rf "$CARBONIO_UI_PATH/src/$ADDON_NAME"
-
-# Unpatch sidebar
-SIDEBAR_FILE="$CARBONIO_UI_PATH/src/components/Sidebar.jsx"
-if [ -f "$SIDEBAR_FILE" ]; then
-  echo "Cleaning up sidebar link..."
-  $DRY_RUN || sed -i "/\/$ADDON_NAME/d" "$SIDEBAR_FILE"
-fi
-
-# Remove CLI wrapper
-if [ -f "/usr/local/bin/cliWrapper.js" ]; then
-  echo "Removing CLI wrapper..."
-  $DRY_RUN || rm /usr/local/bin/cliWrapper.js
-fi
-
-# Remove cloned repo
 REPO_CLONE_DIR="/opt/carbonio-addon-$ADDON_NAME"
-echo "Removing cloned repo at $REPO_CLONE_DIR..."
-$DRY_RUN || rm -rf "$REPO_CLONE_DIR"
+VERSION="0.1.0"
+VERSION_FILE="$CARBONIO_UI_PATH/src/$ADDON_NAME/VERSION"
+
+# Version check and block downgrade if needed
+if [ -f "$VERSION_FILE" ]; then
+  CURRENT_VERSION=$(cat "$VERSION_FILE")
+  NEWER=$(printf "%s\n%s" "$CURRENT_VERSION" "$VERSION" | sort -V | tail -n1)
+  if [ "$NEWER" != "$VERSION" ] && [ "$FORCE_UPDATE" = false ]; then
+    echo "WARNING: Installed version ($CURRENT_VERSION) is newer than script version ($VERSION)."
+    echo "Use --update to force overwrite."
+    exit 1
+  fi
+fi
+
+# Clone or update repository
+if [ "$FORCE_UPDATE" = true ] && [ -d "$REPO_CLONE_DIR" ]; then
+  echo "Updating local clone of repo..."
+  $DRY_RUN || git -C "$REPO_CLONE_DIR" pull
+else
+  echo "Cloning your custom UI repo..."
+  $DRY_RUN || git clone https://github.com/Priyantha/carbonio-admin-ui.git "$REPO_CLONE_DIR"
+fi
+
+# Install frontend files
+echo "Installing UI components..."
+$DRY_RUN || mkdir -p "$CARBONIO_UI_PATH/src/$ADDON_NAME"
+$DRY_RUN || cp "$REPO_CLONE_DIR/src/$ADDON_NAME"/*.jsx "$CARBONIO_UI_PATH/src/$ADDON_NAME/"
+$DRY_RUN || cp "$REPO_CLONE_DIR/src/$ADDON_NAME"/*.js "$CARBONIO_UI_PATH/src/$ADDON_NAME/"
+$DRY_RUN || echo "$VERSION" > "$VERSION_FILE"
+
+# Patch sidebar
+SIDEBAR_FILE="$CARBONIO_UI_PATH/src/components/Sidebar.jsx"
+if [ -f "$SIDEBAR_FILE" ] && ! grep -q "$ADDON_NAME" "$SIDEBAR_FILE"; then
+  echo "Registering sidebar item..."
+  $DRY_RUN || sed -i "/<ul className=\"sidebar-nav\">/a \\\n    <li><a href=\"/#/$ADDON_NAME\" className=\"sidebar-link\">Delegated Admin</a></li>" "$SIDEBAR_FILE"
+fi
+
+# Copy backend CLI wrapper
+echo "Installing CLI backend wrapper..."
+$DRY_RUN || cp "$REPO_CLONE_DIR/src/$ADDON_NAME/cliWrapper.js" /usr/local/bin/cliWrapper.js
+$DRY_RUN || chmod +x /usr/local/bin/cliWrapper.js
 
 # Restart UI (if needed)
 echo "Restarting Carbonio Admin UI..."
-$DRY_RUN || systemctl restart carbonio-admin-ui || echo "⚠️ Restart failed — restart manually if needed"
+$DRY_RUN || systemctl restart carbonio-admin-ui || echo "WARNING: Restart failed — restart manually if needed"
 
-echo "✅ Addon '$ADDON_NAME' version $VERSION removed successfully."
+echo "INFO: Addon '$ADDON_NAME' v$VERSION installation complete."
