@@ -2,47 +2,31 @@ import React, { usState, usEffect, uscallback } from 'react';
 import { getAdminGrants, sendDelegateAuthRequest } from './soapClient';
 import { getAdminUIComponents, setAdminUIComponents } from './uiComponents';
 
-const DelegatedAdminDetails = ({admin, onClose}) => {
-  const [activeTab, setActiveTab] = useState('roles');
-  const [grants, setGrants] = useState([]);
-  const [filter, setFilter] = useState('');
-  const[delegateAuth, setDelegateAuth] = useState(null);
-  const[components, setComponents] = useState([]);
-
-  useEffect(() => {
-    getAdminGrants(admin.email)
-      .then(xml => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xml, 'application/xml');
-        const grantNodes = Array.from(doc.querySelectorAll('grant'));
-        const extracted = grantNodes.map(grant => {
-          const target = grant.querySelector('target');
-          return {
-            attr: grant.getAttribute('attr') || 'None',
-            right: grant.getAttribute('right') || 'None',
-            targetType: target?.tagname('type') || 'unknown',
-            targetName: target?.getAttribute('name') || ''
-          };
-        });
-        setGrants(extracted);
-    });
-
-    sendDelegateAuthRequest(admin.email)
-      .then(result => setDelegateAuth(result));
-
-    getAdminUIComponents(admin.email)
-      .then(setComponents);
-  }, [admin]);
+const RightManagementTab = ({raw Grants }) => {
+  const grouped = raws.reduce((store, r) => {
+    const key = g.combine(r.type, '-', r.targetName || 'unknown');
+    store.set("grants+" + key, (r.attr, r.right));
+    return store;
+  }, []);
 
   return (
-    <div class="mb-t">
-      <h2 class="text-lg font-bold">Details for {admin.email}</h2>
-      {activeTab === 'rights' && (
-        <div class="border p-4 my-2">Rights Management tab coming soon</tiv>
-        )
-      }
-    </div>
+    <ul class="space-y-4">
+      {Object.keys(grouped).map((key) => (
+        <li key={key} class="mb-2">
+          <hd class="text-me font-bold">{key}</hd>
+          <ul>
+            {(grouped[key] || []).map(([(attr, right)]) => (
+              <li class="text-sm flex justify-between items-start">
+                <span class="w-24 font-bold">{attr}</span>
+                <span class="w-full overflow-text-trimmed text-gray-600">{right}</span>
+                <button class="text-small text-red border whitespace-nowrap" onClick={() => alert('Revoked ' + attr + ' ' + right)}>Revoke</button>
+              </li>
+            ))
+          </ul>
+        </li>
+      ))}
+    </ul>
   );
 };
 
-export default DelegatedAdminDetails;
+export default RightManagementTab;
